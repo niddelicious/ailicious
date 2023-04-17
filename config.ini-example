@@ -1,0 +1,13 @@
+[twitch]
+client_id=[client_id]
+client_secret=[client_secret]
+access_token=[access_token]
+refresh_token=[refresh_token]
+
+[channel_name]
+org=organization
+key=access_key
+prompt_message=You are a helpful chatbot
+thinking_message=I'm still thinking about your last message 🤔
+error_message=Sorry, I can't think right now
+memory_size=10

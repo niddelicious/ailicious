@@ -56,7 +56,7 @@ class OpenAI:
         logging.debug(self.conversations[username])
         return self.conversations[username]
 
-    def get_conversation_status(self, username):
+    def get_conversations_status(self, username):
         if username not in self.conversations_status:
             self.start_conversation(username)
         logging.debug(
@@ -64,8 +64,8 @@ class OpenAI:
         )
         return self.conversations_status[username]
 
-    def set_conversation_status(self, username, status):
-        self._conversation_status[username] = status
+    def set_conversations_status(self, username, status):
+        self.conversations_status[username] = status
 
     async def request_chat(self, messages):
         """

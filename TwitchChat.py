@@ -30,6 +30,12 @@ class TwitchChat(commands.Bot):
 
         await self.handle_commands(message)
 
+    async def join_channel(self, channel):
+        await self.join_channels(channel)
+
+    async def leave_channel(self, channel):
+        await self.part_channels(channel)
+
     @commands.command(name="test")
     async def my_command(self, ctx):
         await ctx.send("Hello World!")

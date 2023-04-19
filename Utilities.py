@@ -3,6 +3,8 @@ import requests
 import re
 import logging
 
+from Config import Config
+
 
 class Utilities:
     @classmethod
@@ -34,17 +36,25 @@ class Utilities:
         return res.group(1)
 
     @classmethod
-    async def get_twitch_user_info(
-        cls,
-        username: str = None,
-        client_id: str = None,
-        access_token: str = None,
-    ):
-        url = "https://api.twitch.tv/helix/users"
-        headers = {
+    async def get_twitch_config(cls):
+        return (
+            Config.get("twitch", "access_token"),
+            Config.get("twitch", "client_id"),
+            Config.get("twitch", "client_secret"),
+        )
+
+    @classmethod
+    async def get_twitch_headers(cls):
+        access_token, client_id, client_secret = await cls.get_twitch_config()
+        return {
             "Client-ID": client_id,
             "Authorization": f"Bearer {access_token}",
         }
+
+    @classmethod
+    async def get_twitch_user_info(cls, username: str = None):
+        url = "https://api.twitch.tv/helix/users"
+        headers = await cls.get_twitch_headers()
         params = {"login": username}
         response = requests.get(url, headers=headers, params=params)
         if len(response.json()["data"]) == 0:
@@ -52,17 +62,9 @@ class Utilities:
         return response.json()["data"][0]
 
     @classmethod
-    async def get_twitch_channel_info(
-        cls,
-        user_id: str = None,
-        client_id: str = None,
-        access_token: str = None,
-    ):
+    async def get_twitch_channel_info(cls, user_id: str = None):
         url = f"https://api.twitch.tv/helix/channels?broadcaster_id={user_id}"
-        headers = {
-            "Client-ID": client_id,
-            "Authorization": f"Bearer {access_token}",
-        }
+        headers = await cls.get_twitch_headers()
         response = requests.get(url, headers=headers)
         return response.json()["data"][0]
 
@@ -70,15 +72,10 @@ class Utilities:
     async def get_twitch_stream_info(
         cls,
         user_id: str = None,
-        client_id: str = None,
-        access_token: str = None,
         type: str = "all",
     ):
         url = "https://api.twitch.tv/helix/streams"
-        headers = {
-            "Client-ID": client_id,
-            "Authorization": f"Bearer {access_token}",
-        }
+        headers = await cls.get_twitch_headers()
         params = {"user_id": user_id, "type": type}
         response = requests.get(url, headers=headers, params=params)
         if len(response.json()["data"]) == 0:

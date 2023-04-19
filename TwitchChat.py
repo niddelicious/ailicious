@@ -56,7 +56,6 @@ class TwitchChat:
     @classmethod
     async def join_channel(cls, channel):
         await cls.bot.join_channels([channel])
-        await cls.bot.send_message_to_channel(channel, "Hello, world!")
 
     @classmethod
     async def leave_channel(cls, channel):
@@ -110,11 +109,30 @@ class TwitchBot(commands.Bot):
             if self.author_meets_level_requirements(
                 message.channel.name, message.author, "chat_level"
             ):
-                pass
+                reply = await self.ai_instances[message.channel.name].chat(
+                    username=message.author.name, message=message.content
+                )
+                if reply:
+                    await self.send_message_to_channel(
+                        message.channel.name, reply
+                    )
 
         if message.content[0] == "!":
             await self.handle_commands(message)
             return
+
+    @commands.command()
+    async def so(self, ctx: commands.Context):
+        (
+            success,
+            username,
+            message,
+            avatar_url,
+        ) = await self.ai_instances[
+            ctx.channel.name
+        ].shoutout(content=ctx.message.content, author=ctx.author.name)
+        if message:
+            await self.send_message_to_channel(ctx.channel.name, message)
 
     async def send_message_to_channel(self, channel, message):
         chan = self.get_channel(channel)

@@ -3,6 +3,7 @@ import logging
 
 from openai import OpenAIError
 from Dataclasses import ConversationEntry, ConversationStatus
+from Utilities import Utilities
 
 
 class OpenAI:
@@ -23,7 +24,7 @@ class OpenAI:
         self.tokens = 0
         self.conversations = {}
         self.conversations_status = {}
-        self.memory_size = memory_size
+        self.memory_size = int(memory_size)
 
     def start_conversation(self, username):
         self.conversations[username] = [
@@ -84,3 +85,66 @@ class OpenAI:
         except OpenAIError as e:
             logging.error(e)
             return False
+
+    async def chat(self, username: str = None, message: str = None):
+        if self.get_conversations_status(username) == ConversationStatus.IDLE:
+            self.set_conversations_status(
+                username, ConversationStatus.OCCUPIED
+            )
+            self.add_message(username, "user", message)
+            response = await self.request_chat(self.get_conversation(username))
+            if response:
+                reply = response["choices"][0]["message"]["content"]
+                self.add_message(username, "assistant", reply)
+            else:
+                reply = self.error.format(username=username)
+            self.set_conversations_status(username, ConversationStatus.IDLE)
+        else:
+            reply = self.thinking.format(username=username)
+        return reply
+
+    async def shoutout(self, content: str = None, author: str = None):
+        """
+        Returns success, username, reply, and avatar_url
+        Or None, None, None, None if the module is not running
+        """
+        system_name = "ai_shoutout_generator"
+        system_prompt = "Hype Twitch Streamer Shoutout Generator"
+        username = Utilities.find_username(content)
+        if username:
+            user = await Utilities.get_twitch_user_info(username=username)
+        else:
+            user = None
+            username = None
+        if not user:
+            system_prompt = "Hype Twitch Streamer Shoutout Generator"
+            system_message = f"Give a snarky reply about how @{author} tried to shoutout @{username}, but that user doesn't exist."
+            avatar_url = None
+            success = False
+        else:
+            user_id = user["id"]
+            avatar_url = user["profile_image_url"]
+            user_description = user["description"]
+            channel_info = await Utilities.get_twitch_channel_info(
+                user_id=user_id
+            )
+            game_name = channel_info["game_name"]
+            title = channel_info["title"]
+            tags = channel_info["tags"]
+            stream_info = await Utilities.get_twitch_stream_info(
+                user_id=user_id, type="live"
+            )
+            live_message = (
+                "is currently live and is"
+                if stream_info
+                else "is currently not live, but was last seen"
+            )
+            system_message = f"Write a shoutout for a Twitch streamer named {username} who {live_message} playing {game_name} with the stream title {title}. This is their description: {user_description}.  These are their tags: {tags}. Do not list the tags in the reply. Make sure to end the reply with their url: https://twitch.tv/{username}. Keep the reply under 490 characters."
+            success = True
+
+        self.reprompt_conversation(system_name, prompt=system_prompt)
+        self.add_message(system_name, "assistant", system_message)
+        response = await self.request_chat(self.get_conversation(system_name))
+        reply = response["choices"][0]["message"]["content"]
+
+        return success, username, reply, avatar_url

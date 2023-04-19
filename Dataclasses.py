@@ -11,16 +11,17 @@ class ConversationEntry:
 @dataclass
 class ConversationStatus(enum.Enum):
     IDLE = 0
-    THINKING = 1
-    ERROR = 2
+    OCCUPIED = 1
 
 
+@dataclass
 class ModuleStatus(enum.Enum):
     IDLE = 0
     RUNNING = 1
     STOPPING = 2
 
 
+@dataclass
 class ChatLevel(enum.Enum):
     VIEWER = 0
     VIP = 1

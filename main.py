@@ -1,14 +1,21 @@
-import configparser
-from Threader import Threader
+import sys
 from Modules import Modules
 from TwitchChat import TwitchChat
 from Utilities import Utilities
 from CommandLine import CommandLine
 from Config import Config
 import logging
+import coloredlogs
 
 logger = logging.getLogger()
 logger.setLevel("DEBUG")
+formatter = logging.Formatter(
+    "%(asctime)s | %(levelname)s | %(message)s", "%m-%d-%Y %H:%M:%S"
+)
+stdout_handler = logging.StreamHandler(sys.stdout)
+stdout_handler.setFormatter(formatter)
+logger.addHandler(stdout_handler)
+coloredlogs.install(level="DEBUG", logger=logger)
 
 access_token, refresh_token = Utilities.update_twitch_acccess_token(
     Config.get("twitch", "client_id"),

@@ -101,7 +101,9 @@ class TwitchBot(commands.Bot):
         )
 
     async def event_message(self, message):
-        logging.info(message.content)
+        logging.info(
+            f"{message.channel.name} | {message.author.name}: {message.content}"
+        )
 
         if re.match(self._pattern, message.content):
             logging.info("Matched")

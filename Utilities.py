@@ -1,3 +1,4 @@
+import configparser
 import requests
 import re
 import logging
@@ -5,7 +6,7 @@ import logging
 
 class Utilities:
     @classmethod
-    async def update_twitch_acccess_token(
+    def update_twitch_acccess_token(
         self, client_id, client_secret, refresh_token
     ):
         logging.debug("Refreshing Twitch Chat tokens")

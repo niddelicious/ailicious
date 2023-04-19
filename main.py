@@ -1,16 +1,33 @@
 import configparser
+from Threader import Threader
+from Modules import Modules
+from TwitchChat import TwitchChat
+from Utilities import Utilities
+from CommandLine import CommandLine
+from Config import Config
+import logging
 
-config = configparser.ConfigParser()
-config.read("config.ini")
+logger = logging.getLogger()
+logger.setLevel("DEBUG")
 
-sections = config.sections()
-for section in sections:
-    if section == "twitch":
-        continue
-    print(section)
+access_token, refresh_token = Utilities.update_twitch_acccess_token(
+    Config.get("twitch", "client_id"),
+    Config.get("twitch", "client_secret"),
+    Config.get("twitch", "refresh_token"),
+)
+Config.set("twitch", "access_token", access_token)
+Config.set("twitch", "refresh_token", refresh_token)
 
-    options = config.options(section)
-    for option in options:
-        print(option, config.get(section, option))
+print(Config.sections())
 
-    print()
+twitch_chat = TwitchChat(
+    Config.get("twitch", "access_token"),
+    Config.get("twitch", "client_id"),
+    Config.get("twitch", "client_secret"),
+)
+
+Modules.add_module("twitch_chat", twitch_chat)
+Modules.start_module("twitch_chat")
+
+while CommandLine.commander():
+    pass

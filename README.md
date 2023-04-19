@@ -18,6 +18,6 @@ You will then be billed for your usage per calendar month.
 - Thinking message: The message the bot will send while it is thinking
 - Error message: The message the bot will send if it encounters an error
 - Memory: The number of messages the bot will remember
-- Chat level: The level required to chat with the bot. 0 = everyone, 1 = vip, 2 = subscribers, 3 = moderators, 4 = broadcaster
+- Chat level: The level required to chat with the bot. Viewer, VIP, Subscriber, Moderator, Broadcaster
 - Shoutouts: If the bot should respond to !so commands
-- Shoutout level: The level required to trigger shoutouts. 0 = everyone, 1 = vip, 2 = subscribers, 3 = moderators, 4 = broadcaster
+- Shoutout level: The level required to trigger shoutouts.  Viewer, VIP, Subscriber, Moderator, Broadcaster

@@ -143,7 +143,7 @@ class OpenAI:
             success = True
 
         self.reprompt_conversation(system_name, prompt=system_prompt)
-        self.add_message(system_name, "assistant", system_message)
+        self.add_message(system_name, "user", system_message)
         response = await self.request_chat(self.get_conversation(system_name))
         reply = response["choices"][0]["message"]["content"]
 

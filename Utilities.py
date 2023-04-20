@@ -8,9 +8,13 @@ from Config import Config
 
 class Utilities:
     @classmethod
-    def update_twitch_acccess_token(
-        self, client_id, client_secret, refresh_token
-    ):
+    async def update_twitch_access_token(cls):
+        (
+            access_token,
+            client_id,
+            client_secret,
+            refresh_token,
+        ) = await cls.get_twitch_config()
         logging.debug("Refreshing Twitch Chat tokens")
         twitch_refresh_url = str(
             f"https://id.twitch.tv/oauth2/token?"
@@ -21,7 +25,10 @@ class Utilities:
         )
         refresh = requests.post(twitch_refresh_url).json()
         logging.debug(f"Refresh response: {refresh}")
-        return refresh["access_token"], refresh["refresh_token"]
+        Config.reload_config()
+        Config.set("twitch", "access_token", refresh["access_token"])
+        Config.set("twitch", "refresh_token", refresh["refresh_token"])
+        Config.save_config()
 
     @classmethod
     def find_username(cls, message):
@@ -41,11 +48,17 @@ class Utilities:
             Config.get("twitch", "access_token"),
             Config.get("twitch", "client_id"),
             Config.get("twitch", "client_secret"),
+            Config.get("twitch", "refresh_token"),
         )
 
     @classmethod
     async def get_twitch_headers(cls):
-        access_token, client_id, client_secret = await cls.get_twitch_config()
+        (
+            access_token,
+            client_id,
+            client_secret,
+            refresh_token,
+        ) = await cls.get_twitch_config()
         return {
             "Client-ID": client_id,
             "Authorization": f"Bearer {access_token}",

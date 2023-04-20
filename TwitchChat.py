@@ -1,11 +1,12 @@
 import asyncio
 import logging
 import re
-from twitchio.ext import commands
+from twitchio.ext import commands, routines
 from Config import Config
 
 from Dataclasses import ChatLevel, ModuleStatus
 from OpenAI import OpenAI
+from Utilities import Utilities
 
 
 class TwitchChat:
@@ -23,6 +24,7 @@ class TwitchChat:
         self.client_id = client_id
         self.client_secret = client_secret
         self._status = ModuleStatus.IDLE
+        self.module_name = "twitch_chat"
 
     def set_status(self, status: ModuleStatus):
         self._status = status
@@ -61,6 +63,12 @@ class TwitchChat:
     async def leave_channel(cls, channel):
         await cls.bot.send_message_to_channel(channel, "Bye, world!")
         await cls.bot.part_channels([channel])
+        cls.bot.active_channels.remove(channel)
+
+    @classmethod
+    def list_channels(cls):
+        logging.info(f"{cls.bot.active_channels}")
+        return cls.bot.active_channels
 
 
 class TwitchBot(commands.Bot):
@@ -81,14 +89,15 @@ class TwitchBot(commands.Bot):
         )
         self._pattern = f"@?botdelicious[:;, ]"
         self.ai_instances = {}
+        self.active_channels = []
 
     async def event_ready(self):
         logging.info(f"Ready | {self.nick}")
-        channels = Config.sections()
-        channels.remove("twitch")
-        await self.join_channels(channels)
+        await self.join_channels(Config.get_twitch_channels())
+        self.update_access_tokens.start()
 
     async def event_channel_joined(self, channel):
+        self.active_channels.append(channel.name)
         logging.info(f"Join event! Channel:{channel}")
         await self.send_message_to_channel(channel.name, f"Hello, world!")
         self.ai_instances[channel.name] = OpenAI(
@@ -102,7 +111,7 @@ class TwitchBot(commands.Bot):
 
     async def event_message(self, message):
         logging.info(
-            f"{message.channel.name} | {message.author.name}: {message.content}"
+            f"{message.channel.name} | {message.author.name if message.author else 'System'}:: {message.content}"
         )
 
         if re.match(self._pattern, message.content):
@@ -136,8 +145,18 @@ class TwitchBot(commands.Bot):
         if message:
             await self.send_message_to_channel(ctx.channel.name, message)
 
+    @routines.routine(hours=2)
+    async def update_access_tokens(self):
+        Utilities.update_twitch_access_token()
+
     async def send_message_to_channel(self, channel, message):
-        chan = self.get_channel(channel)
+        for attempt in range(3):
+            chan = self.get_channel(channel)
+            if chan is not None:
+                break
+            await asyncio.sleep(2)
+        else:
+            return False
 
         # Split the message into chunks of up to 500 characters
         message_chunks = []

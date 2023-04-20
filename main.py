@@ -1,5 +1,6 @@
 import sys
 from Modules import Modules
+from Threader import Threader
 from TwitchChat import TwitchChat
 from Utilities import Utilities
 from CommandLine import CommandLine
@@ -7,34 +8,35 @@ from Config import Config
 import logging
 import coloredlogs
 
-logger = logging.getLogger()
-logger.setLevel("DEBUG")
-formatter = logging.Formatter(
-    "%(asctime)s | %(levelname)s | %(message)s", "%m-%d-%Y %H:%M:%S"
-)
-stdout_handler = logging.StreamHandler(sys.stdout)
-stdout_handler.setFormatter(formatter)
-logger.addHandler(stdout_handler)
-coloredlogs.install(level="DEBUG", logger=logger)
 
-access_token, refresh_token = Utilities.update_twitch_acccess_token(
-    Config.get("twitch", "client_id"),
-    Config.get("twitch", "client_secret"),
-    Config.get("twitch", "refresh_token"),
-)
-Config.set("twitch", "access_token", access_token)
-Config.set("twitch", "refresh_token", refresh_token)
+def main():
+    logger = logging.getLogger()
+    logger.setLevel("DEBUG")
+    formatter = logging.Formatter(
+        "%(asctime)s | %(levelname)s | %(message)s", "%m-%d-%Y %H:%M:%S"
+    )
+    stdout_handler = logging.StreamHandler(sys.stdout)
+    stdout_handler.setFormatter(formatter)
+    logger.addHandler(stdout_handler)
+    coloredlogs.install(level="DEBUG", logger=logger)
 
-print(Config.sections())
+    Threader.run_coroutine(Utilities.update_twitch_access_token())
 
-twitch_chat = TwitchChat(
-    Config.get("twitch", "access_token"),
-    Config.get("twitch", "client_id"),
-    Config.get("twitch", "client_secret"),
-)
+    twitch_chat = TwitchChat(
+        Config.get("twitch", "access_token"),
+        Config.get("twitch", "client_id"),
+        Config.get("twitch", "client_secret"),
+    )
 
-Modules.add_module("twitch_chat", twitch_chat)
-Modules.start_module("twitch_chat")
+    Modules.add_module("twitch_chat", twitch_chat)
+    Modules.start_module("twitch_chat")
 
-while CommandLine.commander():
-    pass
+    while CommandLine.commander():
+        pass
+    Threader.stop_loop()
+    logger.info(f"Botdelicious ended\n")
+
+
+if __name__ == "__main__":
+    """This is executed when run from the command line"""
+    main()

@@ -1,4 +1,5 @@
 import sys
+import threading
 from Modules import Modules
 from Threader import Threader
 from TwitchChat import TwitchChat
@@ -7,6 +8,7 @@ from CommandLine import CommandLine
 from Config import Config
 import logging
 import coloredlogs
+import asyncio
 
 
 def main():
@@ -35,6 +37,7 @@ def main():
         pass
     Threader.stop_loop()
     logger.info(f"Botdelicious ended\n")
+    sys.exit()
 
 
 if __name__ == "__main__":

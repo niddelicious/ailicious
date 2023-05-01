@@ -1,3 +1,4 @@
+import os
 import sys
 from Modules import Modules
 from Threader import Threader
@@ -34,7 +35,8 @@ def main():
     while CommandLine.commander():
         pass
     Threader.stop_loop()
-    logger.info(f"Botdelicious ended\n")
+    logger.info(f"Botdelicious ended")
+    os._exit(0)
 
 
 if __name__ == "__main__":

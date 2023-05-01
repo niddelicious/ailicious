@@ -1,12 +1,10 @@
 import asyncio
 import logging
-import re
-from twitchio.ext import commands, routines
+import threading
+import time
 from Config import Config
 
-from Dataclasses import ChatLevel, ModuleStatus
-from OpenAI import OpenAI
-from Utilities import Utilities
+from Dataclasses import ModuleStatus
 
 
 class TwitchChat:
@@ -34,172 +32,116 @@ class TwitchChat:
 
     async def start(self, *args, **kwargs):
         self.set_status(ModuleStatus.RUNNING)
-        self.bot = TwitchBot(
-            self.access_token,
-            self.client_id,
-            self.client_secret,
+        self.threader = BotThreader()  # Store the BotThreader instance
+        self.set_bot(self.threader.create_bot())
+
+        bot_run_thread = threading.Thread(
+            target=self.threader.run_bot, args=(self._bot,)
         )
-        self.set_bot(self.bot)
-        await self.bot.start()
+        bot_run_thread.start()
+        self.bot_thread = bot_run_thread
 
     async def stop(self, *args, **kwargs):
+        logging.debug("TwitchChat stop initiated")
         self.set_status(ModuleStatus.STOPPING)
-        await self.bot.close()
+
+        self.threader.stop_bot(
+            self._bot
+        )  # Use the stored BotThreader instance
+
+        self.bot_thread.join()
+
         self.set_status(ModuleStatus.IDLE)
 
     @classmethod
     def get_bot(cls):
-        return cls.bot
+        return cls._bot
 
     @classmethod
     def set_bot(cls, bot):
-        cls.bot = bot
+        cls._bot = bot
 
     @classmethod
     async def join_channel(cls, channel):
-        await cls.bot.join_channels([channel])
+        await cls._bot.join_channels([channel])
 
     @classmethod
     async def leave_channel(cls, channel):
-        await cls.bot.send_message_to_channel(channel, "Bye, world!")
-        await cls.bot.part_channels([channel])
-        cls.bot.active_channels.remove(channel)
+        await cls._bot.send_message_to_channel(channel, "Bye, world!")
+        await cls._bot.part_channels([channel])
+        cls._bot.active_channels.remove(channel)
 
     @classmethod
     def list_channels(cls):
         logging.info(f"{cls.bot.active_channels}")
-        return cls.bot.active_channels
+        return cls._bot.active_channels
 
 
-class TwitchBot(commands.Bot):
-    def __init__(
-        self,
-        access_token,
-        client_id,
-        client_secret,
-        *args,
-        **kwargs,
-    ):
-        super().__init__(
-            token=access_token,
-            prefix="!",
-            client_id=client_id,
-            client_secret=client_secret,
-            case_insensitive=True,
-        )
-        self._pattern = f"@?botdelicious[:;, ]"
-        self.ai_instances = {}
-        self.active_channels = []
+class BotThreader:
+    def __init__(self):
+        self.bot_initialized = threading.Event()
+        self.shared_data = {}
+        self.loop = None
 
-    async def event_ready(self):
-        logging.info(f"Ready | {self.nick}")
-        await self.join_channels(Config.get_twitch_channels())
-        self.update_access_tokens.start()
+    def init_bot(self):
+        self.loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(self.loop)
 
-    async def event_channel_joined(self, channel):
-        self.active_channels.append(channel.name)
-        logging.info(f"Join event! Channel:{channel}")
-        await self.send_message_to_channel(channel.name, f"Hello, world!")
-        self.ai_instances[channel.name] = OpenAI(
-            Config.get(channel.name, "org"),
-            Config.get(channel.name, "key"),
-            Config.get(channel.name, "prompt_message"),
-            Config.get(channel.name, "thinking_message"),
-            Config.get(channel.name, "error_message"),
-            Config.get(channel.name, "memory_size"),
+        # Initialize the bot
+        from TwitchBot import TwitchBot
+
+        bot = TwitchBot(
+            Config.get("twitch", "access_token"),
+            Config.get("twitch", "client_id"),
+            Config.get("twitch", "client_secret"),
         )
 
-    async def event_message(self, message):
-        logging.info(
-            f"{message.channel.name} | {message.author.name if message.author else 'System'}:: {message.content}"
-        )
+        # Store the bot instance in the shared_data dictionary
+        self.shared_data["bot"] = bot
 
-        if re.match(self._pattern, message.content):
-            logging.info("Matched")
-            logging.info(message.author)
-            if self.author_meets_level_requirements(
-                message.channel.name, message.author, "chat_level"
-            ):
-                reply = await self.ai_instances[message.channel.name].chat(
-                    username=message.author.name, message=message.content
-                )
-                if reply:
-                    await self.send_message_to_channel(
-                        message.channel.name, reply
-                    )
+        # Set the event to signal that the bot is initialized
+        self.bot_initialized.set()
 
-        if message.content[0] == "!":
-            await self.handle_commands(message)
-            return
+    def run_bot(self, bot):
+        # Set the loop as the current event loop for this thread
+        asyncio.set_event_loop(self.loop)
 
-    @commands.command()
-    async def so(self, ctx: commands.Context):
-        (
-            success,
-            username,
-            message,
-            avatar_url,
-        ) = await self.ai_instances[
-            ctx.channel.name
-        ].shoutout(content=ctx.message.content, author=ctx.author.name)
-        if message:
-            await self.send_message_to_channel(ctx.channel.name, message)
+        # Create a Task object for the bot.run() coroutine
+        bot_task = self.loop.create_task(bot.run())
 
-    @routines.routine(hours=2)
-    async def update_access_tokens(self):
-        Utilities.update_twitch_access_token()
+        # Store the bot_task in the shared_data dictionary
+        self.shared_data["bot_task"] = bot_task
 
-    async def send_message_to_channel(self, channel, message):
-        for attempt in range(3):
-            chan = self.get_channel(channel)
-            if chan is not None:
-                break
-            await asyncio.sleep(2)
-        else:
-            return False
+        # Run the event loop
+        self.loop.run_until_complete(bot_task)
 
-        # Split the message into chunks of up to 500 characters
-        message_chunks = []
-        while message:
-            if len(message) > 500:
-                last_space_or_punctuation = re.search(
-                    r"[\s\.,;!?-]{1,}[^\s\.,;!?-]*$", message[:500]
-                )
-                if last_space_or_punctuation:
-                    split_at = last_space_or_punctuation.start()
-                else:
-                    split_at = 500
+    def stop_bot(self, bot):
+        if self.loop:
+            logging.debug("Bot Stop initiated")
+            # Call the bot.stop_bot() method to perform necessary clean-up tasks
+            future = asyncio.run_coroutine_threadsafe(
+                bot.stop_bot(), self.loop
+            )
+            future.result()  # Wait for the coroutine to complete
+            logging.debug("Routines cancelled")
 
-                chunk = message[:split_at]
-                message = message[split_at:].lstrip()
-            else:
-                chunk = message
-                message = ""
+            # Wait for the bot.run() coroutine to complete
+            bot_task = self.shared_data["bot_task"]
+            asyncio.run_coroutine_threadsafe(bot_task, self.loop)
+            bot_task.result()
+            del bot
+            self.loop.stop()  # Stop the event loop
+            logging.debug("Loop stopped")
 
-            message_chunks.append(chunk)
+    def create_bot(self):
+        # Initialize the bot in a new thread
+        bot_init_thread = threading.Thread(target=self.init_bot)
+        bot_init_thread.start()
 
-        # Send each chunk as a separate message
-        for chunk in message_chunks:
-            self.loop.create_task(chan.send(chunk))
-            await asyncio.sleep(2)
+        # Wait for the bot to be initialized
+        self.bot_initialized.wait()
 
-    def author_meets_level_requirements(
-        self, channel, chatter, type="chat_level"
-    ):
-        chatter_level = self.translate_chatter_level(chatter)
-        type_level = ChatLevel[Config.get(channel, type)]
-        return self.compare_levels(chatter_level, type_level)
+        # Retrieve the bot instance from the shared_data dictionary
+        bot = self.shared_data["bot"]
 
-    def translate_chatter_level(self, chatter):
-        if chatter.is_broadcaster:
-            return ChatLevel.BROADCASTER
-        if chatter.is_mod:
-            return ChatLevel.MODERATOR
-        if chatter.is_subscriber:
-            return ChatLevel.SUBSCRIBER
-        if chatter.is_vip:
-            return ChatLevel.VIP
-        return ChatLevel.VIEWER
-
-    def compare_levels(self, chatter_level, required_level):
-        return chatter_level.value >= required_level.value
+        return bot

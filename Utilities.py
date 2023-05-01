@@ -1,4 +1,3 @@
-import configparser
 import requests
 import re
 import logging

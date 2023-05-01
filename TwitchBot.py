@@ -50,11 +50,11 @@ class TwitchBot(commands.Bot):
 
     async def event_message(self, message):
         logging.info(
-            f"{message.channel.name} | {message.author.name if message.author else 'System'}:: {message.content}"
+            f"{message.channel.name} | {message.author.name if message.author else 'Botdelicious'}:: {message.content}"
         )
 
         if re.match(self._pattern, message.content):
-            logging.info("Matched")
+            logging.debug("Matched")
             logging.info(message.author)
             if self.author_meets_level_requirements(
                 message.channel.name, message.author, "chat_level"
@@ -84,15 +84,22 @@ class TwitchBot(commands.Bot):
         if message:
             await self.send_message_to_channel(ctx.channel.name, message)
 
-    @routines.routine(seconds=3, iterations=3)
+    @routines.routine(seconds=3, iterations=10)
     async def routine_check(self):
-        logging.info(
+        logging.debug(
             f"Routine check {self.routine_check.completed_iterations + 1} completed, {self.routine_check.remaining_iterations - 1} remaining"
         )
 
     @routines.routine(hours=2)
     async def update_access_tokens(self):
         await Utilities.update_twitch_access_token()
+
+    async def stop_bot(self):
+        logging.info("Stopping bot")
+        self.routine_check.cancel()
+        self.update_access_tokens.cancel()
+        await self.close()
+        logging.info("Bot stopped")
 
     async def send_message_to_channel(self, channel, message):
         for attempt in range(3):

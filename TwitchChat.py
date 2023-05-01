@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import threading
+import time
 from Config import Config
 
 from Dataclasses import ModuleStatus
@@ -31,20 +32,24 @@ class TwitchChat:
 
     async def start(self, *args, **kwargs):
         self.set_status(ModuleStatus.RUNNING)
-        threader = BotThreader()
-        self.set_bot(threader.create_bot())
+        self.threader = BotThreader()  # Store the BotThreader instance
+        self.set_bot(self.threader.create_bot())
 
         bot_run_thread = threading.Thread(
-            target=threader.run_bot, args=(self._bot,)
+            target=self.threader.run_bot, args=(self._bot,)
         )
         bot_run_thread.start()
+        self.bot_thread = bot_run_thread
 
     async def stop(self, *args, **kwargs):
+        logging.debug("TwitchChat stop initiated")
         self.set_status(ModuleStatus.STOPPING)
-        # await self._bot.close()
 
-        threader = BotThreader()
-        threader.stop_bot()
+        self.threader.stop_bot(
+            self._bot
+        )  # Use the stored BotThreader instance
+
+        self.bot_thread.join()
 
         self.set_status(ModuleStatus.IDLE)
 
@@ -101,11 +106,32 @@ class BotThreader:
         # Set the loop as the current event loop for this thread
         asyncio.set_event_loop(self.loop)
 
-        self.loop.run_until_complete(bot.run())
+        # Create a Task object for the bot.run() coroutine
+        bot_task = self.loop.create_task(bot.run())
 
-    def stop_bot(self):
+        # Store the bot_task in the shared_data dictionary
+        self.shared_data["bot_task"] = bot_task
+
+        # Run the event loop
+        self.loop.run_until_complete(bot_task)
+
+    def stop_bot(self, bot):
         if self.loop:
-            self.loop.call_soon_threadsafe(self.loop.stop)
+            logging.debug("Bot Stop initiated")
+            # Call the bot.stop_bot() method to perform necessary clean-up tasks
+            future = asyncio.run_coroutine_threadsafe(
+                bot.stop_bot(), self.loop
+            )
+            future.result()  # Wait for the coroutine to complete
+            logging.debug("Routines cancelled")
+
+            # Wait for the bot.run() coroutine to complete
+            bot_task = self.shared_data["bot_task"]
+            asyncio.run_coroutine_threadsafe(bot_task, self.loop)
+            bot_task.result()
+            del bot
+            self.loop.stop()  # Stop the event loop
+            logging.debug("Loop stopped")
 
     def create_bot(self):
         # Initialize the bot in a new thread

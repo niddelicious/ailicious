@@ -76,16 +76,21 @@ class TwitchBot(commands.Bot):
 
     @commands.command()
     async def so(self, ctx: commands.Context):
-        (
-            success,
-            username,
-            message,
-            avatar_url,
-        ) = await self.ai_instances[
-            ctx.channel.name
-        ].shoutout(content=ctx.message.content, author=ctx.author.name)
-        if message:
-            await self.send_message_to_channel(ctx.channel.name, message)
+        if self.author_meets_level_requirements(
+            ctx.channel.name, ctx.author, "shoutout_level"
+        ):
+            (
+                success,
+                username,
+                shoutout_message,
+                avatar_url,
+            ) = await self.ai_instances[ctx.channel.name].shoutout(
+                content=ctx.message.content, author=ctx.author.name
+            )
+            if shoutout_message:
+                await self.send_message_to_channel(
+                    ctx.channel.name, shoutout_message
+                )
 
     @routines.routine(seconds=3, iterations=10)
     async def routine_check(self):
@@ -142,7 +147,11 @@ class TwitchBot(commands.Bot):
         self, channel, chatter, type="chat_level"
     ):
         chatter_level = self.translate_chatter_level(chatter)
-        type_level = ChatLevel[Config.get(channel, type)]
+        type_level = (
+            ChatLevel[Config.get(channel, type)]
+            if Config.get(channel, type)
+            else ChatLevel.VIEWER
+        )
         return self.compare_levels(chatter_level, type_level)
 
     def translate_chatter_level(self, chatter):

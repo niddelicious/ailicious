@@ -6,6 +6,7 @@ from dataclasses import dataclass
 class ConversationEntry:
     role: str
     content: str
+    name: str
 
 
 @dataclass

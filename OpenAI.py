@@ -15,6 +15,7 @@ class OpenAI:
         thinking_message,
         error_message,
         memory_size=10,
+        chat_wide_conversation=False,
     ) -> None:
         openai.organization = org
         openai.api_key = key
@@ -25,48 +26,57 @@ class OpenAI:
         self.conversations = {}
         self.conversations_status = {}
         self.memory_size = int(memory_size)
+        self.chat_wide_conversation = chat_wide_conversation
 
-    def start_conversation(self, username):
-        self.conversations[username] = [
-            ConversationEntry("system", self.prompt.format(username=username))
+    def start_conversation(self, conversation_id):
+        self.conversations[conversation_id] = [
+            ConversationEntry(
+                "system",
+                self.prompt.format(username=conversation_id),
+                conversation_id,
+            )
         ]
-        self.conversations_status[username] = ConversationStatus.IDLE
+        self.conversations_status[conversation_id] = ConversationStatus.IDLE
 
-    def reprompt_conversation(self, username, prompt: str = None):
-        self.clean_conversation(username)
+    def reprompt_conversation(
+        self, conversation_id, prompt: str = None, author: str = None
+    ):
+        self.clean_conversation(conversation_id)
         conversation_prompt = (
-            prompt if prompt else self.prompt.format(username=username)
+            prompt if prompt else self.prompt.format(username=author)
         )
-        self.conversations[username] = [
-            ConversationEntry("system", conversation_prompt)
+        self.conversations[conversation_id] = [
+            ConversationEntry("system", conversation_prompt, "system")
         ]
-        self.conversations_status[username] = ConversationStatus.IDLE
+        self.conversations_status[conversation_id] = ConversationStatus.IDLE
 
-    def clean_conversation(self, username):
-        if username in self.conversations:
-            del self.conversations[username]
-        if username in self.conversations_status:
-            del self.conversations_status[username]
+    def clean_conversation(self, conversation_id):
+        if conversation_id in self.conversations:
+            del self.conversations[conversation_id]
+        if conversation_id in self.conversations_status:
+            del self.conversations_status[conversation_id]
 
-    def add_message(self, username, role, message):
-        self.conversations[username].append(ConversationEntry(role, message))
-        if len(self.conversations[username]) > self.memory_size:
-            del self.conversations[username][1:3]
-
-    def get_conversation(self, username):
-        logging.debug(self.conversations[username])
-        return self.conversations[username]
-
-    def get_conversations_status(self, username):
-        if username not in self.conversations_status:
-            self.start_conversation(username)
-        logging.debug(
-            f"Conversation status for {username} is {self.conversations_status[username]}"
+    def add_message(self, conversation_id, role, message, author):
+        self.conversations[conversation_id].append(
+            ConversationEntry(role, message, author)
         )
-        return self.conversations_status[username]
+        if len(self.conversations[conversation_id]) > self.memory_size:
+            del self.conversations[conversation_id][1:3]
 
-    def set_conversations_status(self, username, status):
-        self.conversations_status[username] = status
+    def get_conversation(self, conversation_id):
+        logging.debug(self.conversations[conversation_id])
+        return self.conversations[conversation_id]
+
+    def get_conversations_status(self, conversation_id):
+        if conversation_id not in self.conversations_status:
+            self.start_conversation(conversation_id)
+        logging.debug(
+            f"Conversation status for {conversation_id} is {self.conversations_status[conversation_id]}"
+        )
+        return self.conversations_status[conversation_id]
+
+    def set_conversations_status(self, conversation_id, status):
+        self.conversations_status[conversation_id] = status
 
     async def request_chat(self, messages):
         """
@@ -86,19 +96,35 @@ class OpenAI:
             logging.error(e)
             return False
 
-    async def chat(self, username: str = None, message: str = None):
-        if self.get_conversations_status(username) == ConversationStatus.IDLE:
+    async def chat(
+        self, username: str = None, message: str = None, channel: str = None
+    ):
+        author = username
+        if self.chat_wide_conversation:
+            conversation_id = f"{channel}__chat"
+        else:
+            conversation_id = f"{channel}__{username}"
+        if (
+            self.get_conversations_status(conversation_id)
+            == ConversationStatus.IDLE
+        ):
             self.set_conversations_status(
                 username, ConversationStatus.OCCUPIED
             )
-            self.add_message(username, "user", message)
-            response = await self.request_chat(self.get_conversation(username))
+            self.add_message(conversation_id, "user", message, author)
+            response = await self.request_chat(
+                self.get_conversation(conversation_id)
+            )
             if response:
                 reply = response["choices"][0]["message"]["content"]
-                self.add_message(username, "assistant", reply)
+                self.add_message(
+                    conversation_id, "assistant", reply, "botdelicious"
+                )
             else:
                 reply = self.error.format(username=username)
-            self.set_conversations_status(username, ConversationStatus.IDLE)
+            self.set_conversations_status(
+                conversation_id, ConversationStatus.IDLE
+            )
         else:
             reply = self.thinking.format(username=username)
         return reply
@@ -142,8 +168,10 @@ class OpenAI:
             system_message = f"Write a shoutout for a Twitch streamer named {username} who {live_message} playing {game_name} with the stream title {title}. This is their description: {user_description}.  These are their tags: {tags}. Do not list the tags in the reply. Make sure to end the reply with their url: https://twitch.tv/{username}. Keep the reply under 490 characters."
             success = True
 
-        self.reprompt_conversation(system_name, prompt=system_prompt)
-        self.add_message(system_name, "user", system_message)
+        self.reprompt_conversation(
+            system_name, prompt=system_prompt, author=author
+        )
+        self.add_message(system_name, "user", system_message, author)
         response = await self.request_chat(self.get_conversation(system_name))
         reply = response["choices"][0]["message"]["content"]
 

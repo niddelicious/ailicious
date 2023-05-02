@@ -46,6 +46,7 @@ class TwitchBot(commands.Bot):
             Config.get(channel.name, "thinking_message"),
             Config.get(channel.name, "error_message"),
             Config.get(channel.name, "memory_size"),
+            Config.get(channel.name, "chat_wide_conversation"),
         )
 
     async def event_message(self, message):
@@ -60,7 +61,9 @@ class TwitchBot(commands.Bot):
                 message.channel.name, message.author, "chat_level"
             ):
                 reply = await self.ai_instances[message.channel.name].chat(
-                    username=message.author.name, message=message.content
+                    username=message.author.name,
+                    message=message.content,
+                    channel=message.channel.name,
                 )
                 if reply:
                     await self.send_message_to_channel(

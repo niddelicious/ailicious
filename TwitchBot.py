@@ -53,6 +53,8 @@ class TwitchBot(commands.Bot):
         logging.info(
             f"{message.channel.name} | {message.author.name if message.author else 'Botdelicious'}:: {message.content}"
         )
+        if message.echo:
+            return
 
         if re.match(self._pattern, message.content):
             logging.debug("Matched")

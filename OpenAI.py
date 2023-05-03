@@ -33,7 +33,7 @@ class OpenAI:
             ConversationEntry(
                 "system",
                 self.prompt.format(username=conversation_id),
-                conversation_id,
+                "Twitch",
             )
         ]
         self.conversations_status[conversation_id] = ConversationStatus.IDLE
@@ -58,7 +58,7 @@ class OpenAI:
 
     def add_message(self, conversation_id, role, message, author):
         self.conversations[conversation_id].append(
-            ConversationEntry(role, message, author)
+            ConversationEntry(role, f"{message}", author)
         )
         if len(self.conversations[conversation_id]) > self.memory_size:
             del self.conversations[conversation_id][1:3]
@@ -169,7 +169,7 @@ class OpenAI:
             success = True
 
         self.reprompt_conversation(
-            system_name, prompt=system_prompt, author=author
+            system_name, prompt=system_prompt, author="Twitch"
         )
         self.add_message(system_name, "user", system_message, author)
         response = await self.request_chat(self.get_conversation(system_name))

@@ -28,11 +28,11 @@ class OpenAI:
         self.memory_size = int(memory_size)
         self.chat_wide_conversation = chat_wide_conversation
 
-    def start_conversation(self, conversation_id):
+    def start_conversation(self, conversation_id, author):
         self.conversations[conversation_id] = [
             ConversationEntry(
                 "system",
-                self.prompt.format(username=conversation_id),
+                self.prompt.format(username=author),
                 "Twitch",
             )
         ]
@@ -46,7 +46,7 @@ class OpenAI:
             prompt if prompt else self.prompt.format(username=author)
         )
         self.conversations[conversation_id] = [
-            ConversationEntry("system", conversation_prompt, "system")
+            ConversationEntry("system", conversation_prompt, author)
         ]
         self.conversations_status[conversation_id] = ConversationStatus.IDLE
 
@@ -67,9 +67,9 @@ class OpenAI:
         logging.debug(self.conversations[conversation_id])
         return self.conversations[conversation_id]
 
-    def get_conversations_status(self, conversation_id):
+    def get_conversations_status(self, conversation_id, author):
         if conversation_id not in self.conversations_status:
-            self.start_conversation(conversation_id)
+            self.start_conversation(conversation_id, author)
         logging.debug(
             f"Conversation status for {conversation_id} is {self.conversations_status[conversation_id]}"
         )
@@ -78,7 +78,7 @@ class OpenAI:
     def set_conversations_status(self, conversation_id, status):
         self.conversations_status[conversation_id] = status
 
-    async def request_chat(self, messages):
+    async def request_chat(self, messages, assistant_message=None):
         """
         $0.002 per 1000 tokens using gpt-3.5-turbo
         Which is 1/10th of the cost of text-davinci-003
@@ -86,6 +86,8 @@ class OpenAI:
         """
         try:
             json_messages = [message.__dict__ for message in messages]
+            if assistant_message:
+                json_messages.append(assistant_message.__dict__)
             response = await openai.ChatCompletion.acreate(
                 model="gpt-3.5-turbo",
                 messages=json_messages,
@@ -103,17 +105,20 @@ class OpenAI:
         if self.chat_wide_conversation:
             conversation_id = f"{channel}__chat"
         else:
-            conversation_id = f"{channel}__{username}"
+            conversation_id = f"{username}"
         if (
-            self.get_conversations_status(conversation_id)
+            self.get_conversations_status(conversation_id, author)
             == ConversationStatus.IDLE
         ):
             self.set_conversations_status(
                 username, ConversationStatus.OCCUPIED
             )
             self.add_message(conversation_id, "user", message, author)
+            if self.chat_wide_conversation:
+                assistant_message = ConversationEntry("assistant", f"Please respond to @{author}'s last message: '{message}'. Consider the context and adress them directly.", "Twitch")
             response = await self.request_chat(
-                self.get_conversation(conversation_id)
+                self.get_conversation(conversation_id),
+                assistant_message
             )
             if response:
                 reply = response["choices"][0]["message"]["content"]

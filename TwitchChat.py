@@ -5,10 +5,11 @@ import time
 from Config import Config
 
 from Dataclasses import ModuleStatus
+from TwitchBot import TwitchBot
 
 
 class TwitchChat:
-    _bot = None
+    _bot:TwitchBot = None
 
     def __init__(
         self,
@@ -73,7 +74,7 @@ class TwitchChat:
 
     @classmethod
     def list_channels(cls):
-        logging.info(f"{cls.bot.active_channels}")
+        logging.info(f"{cls._bot.active_channels}")
         return cls._bot.active_channels
 
 

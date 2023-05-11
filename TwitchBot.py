@@ -32,7 +32,6 @@ class TwitchBot(commands.Bot):
     async def event_ready(self):
         logging.info(f"Ready | {self.nick}")
         await self.join_channels(Config.get_twitch_channels())
-        self.update_access_tokens.start()
         self.routine_check.start()
 
     async def event_channel_joined(self, channel):
@@ -76,18 +75,21 @@ class TwitchBot(commands.Bot):
             await self.handle_commands(message)
             return
 
+    async def event_token_expired(self):
+        logging.info("Token expired")
+        return await Utilities.update_twitch_access_token()
+
     @commands.command()
     async def so(self, ctx: commands.Context):
         if self.author_meets_level_requirements(
             ctx.channel.name, ctx.author, "shoutout_level"
         ):
-            (
-                success,
-                username,
-                shoutout_message,
-                avatar_url,
-            ) = await self.ai_instances[ctx.channel.name].shoutout(
-                content=ctx.message.content, author=ctx.author.name
+            username = Utilities.find_username(ctx.message.content)
+            target = await self.fetch_user_info(username) if username else None
+            logging.debug(f"Target: {target}")
+            failed = False if target else username
+            shoutout_message = await self.ai_instances[ctx.channel.name].shoutout(
+                target=target, author=ctx.author.name, failed=failed
             )
             if shoutout_message:
                 await self.send_message_to_channel(
@@ -99,15 +101,15 @@ class TwitchBot(commands.Bot):
         logging.debug(
             f"Routine check {self.routine_check.completed_iterations + 1} completed, {self.routine_check.remaining_iterations - 1} remaining"
         )
-
-    @routines.routine(hours=2)
-    async def update_access_tokens(self):
-        await Utilities.update_twitch_access_token()
+        raise RuntimeError("Routine check error")
+    
+    @routine_check.error
+    async def routine_check_error(self, error):
+        logging.error(f"Routine check error: {error}")
 
     async def stop_bot(self):
         logging.info("Stopping bot")
         self.routine_check.cancel()
-        self.update_access_tokens.cancel()
         await self.close()
         logging.info("Bot stopped")
 
@@ -169,3 +171,28 @@ class TwitchBot(commands.Bot):
 
     def compare_levels(self, chatter_level, required_level):
         return chatter_level.value >= required_level.value
+
+    async def fetch_user_info(self, username):
+        targets = await self.fetch_users(names=[username])
+        if targets and targets[0] is not None:
+            name = targets[0].name
+            display_name = targets[0].display_name
+            description = targets[0].description
+            streams = await self.fetch_streams(user_ids=[targets[0].id])
+            is_live = True if streams and streams[0] is not None else False
+            channels = await self.fetch_channels(broadcaster_ids=[targets[0].id])
+            game_name = None
+            tags = None
+            title = None
+            if channels and channels[0] is not None:
+                channel = channels[0]
+                title = channel.title
+                game_name = channel.game_name
+                tags = channel.tags
+            return {"name": name, "display_name": display_name, "description": description, "is_live": is_live, "game_name": game_name, "tags": tags, "title": title}
+        else:
+            return None
+
+
+
+

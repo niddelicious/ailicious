@@ -2,6 +2,7 @@ import openai
 import logging
 
 from openai import OpenAIError
+from twitchio import User
 from Dataclasses import ConversationEntry, ConversationStatus
 from Utilities import Utilities
 
@@ -114,8 +115,12 @@ class OpenAI:
                 username, ConversationStatus.OCCUPIED
             )
             self.add_message(conversation_id, "user", message, author)
-            if self.chat_wide_conversation:
-                assistant_message = ConversationEntry("assistant", f"Please respond to @{author}'s last message: '{message}'. Consider the context and adress them directly.", "Twitch")
+            assistant_message = ConversationEntry(
+                "assistant",
+                f"Please respond to @{author}'s last message: '{message}'. "
+                "Consider the context and adress them directly.",
+                "Twitch"
+            ) if self.chat_wide_conversation else None
             response = await self.request_chat(
                 self.get_conversation(conversation_id),
                 assistant_message
@@ -134,50 +139,40 @@ class OpenAI:
             reply = self.thinking.format(username=username)
         return reply
 
-    async def shoutout(self, content: str = None, author: str = None):
-        """
-        Returns success, username, reply, and avatar_url
-        Or None, None, None, None if the module is not running
-        """
+    async def shoutout(self, target: dict = None, author: str = None, failed: bool = False) -> str:
         system_name = "ai_shoutout_generator"
         system_prompt = "Hype Twitch Streamer Shoutout Generator"
-        username = Utilities.find_username(content)
-        if username:
-            user = await Utilities.get_twitch_user_info(username=username)
-        else:
-            user = None
-            username = None
-        if not user:
-            system_prompt = "Hype Twitch Streamer Shoutout Generator"
-            system_message = f"Give a snarky reply about how @{author} tried to shoutout @{username}, but that user doesn't exist."
-            avatar_url = None
-            success = False
-        else:
-            user_id = user["id"]
-            avatar_url = user["profile_image_url"]
-            user_description = user["description"]
-            channel_info = await Utilities.get_twitch_channel_info(
-                user_id=user_id
+
+        if failed:
+            system_message = (
+                f"Give a snarky reply about how @{author} "
+                f"tried to shoutout @{failed}, but that user doesn't exist."
             )
-            game_name = channel_info["game_name"]
-            title = channel_info["title"]
-            tags = channel_info["tags"]
-            stream_info = await Utilities.get_twitch_stream_info(
-                user_id=user_id, type="live"
-            )
+        else:
             live_message = (
                 "is currently live and is"
-                if stream_info
+                if target["is_live"]
                 else "is currently not live, but was last seen"
             )
-            system_message = f"Write a shoutout for a Twitch streamer named {username} who {live_message} playing {game_name} with the stream title {title}. This is their description: {user_description}.  These are their tags: {tags}. Do not list the tags in the reply. Make sure to end the reply with their url: https://twitch.tv/{username}. Keep the reply under 490 characters."
-            success = True
+            system_message = (
+                f"Write a shoutout for a Twitch streamer named "
+                f"{target['display_name']} who {live_message} "
+                f"playing {target['game_name']} with the "
+                f"stream title {target['title']}. "
+                f"This is their description: {target['description']}. "
+                f"These are their tags: "
+                f"{', '.join([str(tag) for tag in target['tags']])}. "
+                f"Do not list the tags in the reply. "
+                f"Make sure to end the reply with their url: "
+                f"https://twitch.tv/{target['name']}. "
+                f"Keep the reply under 490 characters."
+            )
 
         self.reprompt_conversation(
             system_name, prompt=system_prompt, author="Twitch"
         )
-        self.add_message(system_name, "user", system_message, author)
+        self.add_message(system_name, "user", {system_message}, author)
         response = await self.request_chat(self.get_conversation(system_name))
         reply = response["choices"][0]["message"]["content"]
 
-        return success, username, reply, avatar_url
+        return reply

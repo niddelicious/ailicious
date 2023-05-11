@@ -29,9 +29,10 @@ class Utilities:
         Config.set("twitch", "access_token", refresh.json()["access_token"])
         Config.set("twitch", "refresh_token", refresh.json()["refresh_token"])
         Config.save_config()
+        return refresh.json()["access_token"]
 
     @classmethod
-    def find_username(cls, message):
+    def find_username(cls, message) -> str:
         twitch_username_pattern = "@(\w+)"
         res = re.search(twitch_username_pattern, message)
         if not res:

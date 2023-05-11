@@ -1,6 +1,6 @@
-import requests
 import re
 import logging
+import httpx
 
 from Config import Config
 
@@ -22,11 +22,12 @@ class Utilities:
             f"client_id={client_id}&"
             f"client_secret={client_secret}"
         )
-        refresh = requests.post(twitch_refresh_url).json()
-        logging.debug(f"Refresh response: {refresh}")
+        async with httpx.AsyncClient() as client:
+            refresh = await client.post(twitch_refresh_url)
+        logging.debug(f"Refresh response: {refresh.json()}")
         Config.reload_config()
-        Config.set("twitch", "access_token", refresh["access_token"])
-        Config.set("twitch", "refresh_token", refresh["refresh_token"])
+        Config.set("twitch", "access_token", refresh.json()["access_token"])
+        Config.set("twitch", "refresh_token", refresh.json()["refresh_token"])
         Config.save_config()
 
     @classmethod
@@ -68,7 +69,8 @@ class Utilities:
         url = "https://api.twitch.tv/helix/users"
         headers = await cls.get_twitch_headers()
         params = {"login": username}
-        response = requests.get(url, headers=headers, params=params)
+        async with httpx.AsyncClient() as client:
+            response = await client.get(url, headers=headers, params=params)
         if len(response.json()["data"]) == 0:
             return None
         return response.json()["data"][0]
@@ -77,7 +79,8 @@ class Utilities:
     async def get_twitch_channel_info(cls, user_id: str = None):
         url = f"https://api.twitch.tv/helix/channels?broadcaster_id={user_id}"
         headers = await cls.get_twitch_headers()
-        response = requests.get(url, headers=headers)
+        async with httpx.AsyncClient() as client:
+            response = await client.get(url, headers=headers)
         return response.json()["data"][0]
 
     @classmethod
@@ -89,7 +92,8 @@ class Utilities:
         url = "https://api.twitch.tv/helix/streams"
         headers = await cls.get_twitch_headers()
         params = {"user_id": user_id, "type": type}
-        response = requests.get(url, headers=headers, params=params)
+        async with httpx.AsyncClient() as client:
+            response = await client.get(url, headers=headers, params=params)
         if len(response.json()["data"]) == 0:
             return None
         return response.json()["data"][0]

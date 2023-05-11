@@ -101,6 +101,11 @@ class TwitchBot(commands.Bot):
         logging.debug(
             f"Routine check {self.routine_check.completed_iterations + 1} completed, {self.routine_check.remaining_iterations - 1} remaining"
         )
+        raise RuntimeError("Routine check error")
+    
+    @routine_check.error
+    async def routine_check_error(self, error):
+        logging.error(f"Routine check error: {error}")
 
     async def stop_bot(self):
         logging.info("Stopping bot")

@@ -32,7 +32,7 @@ class TwitchBot(commands.Bot):
 
     async def event_ready(self):
         await self.join_channels(Config.get_twitch_channels())
-        
+
         self.routine_check.start()
         logging.info(f"Ready | {self.nick}")
 
@@ -90,9 +90,9 @@ class TwitchBot(commands.Bot):
             target = await self.fetch_user_info(username) if username else None
             logging.debug(f"Target: {target}")
             failed = False if target else username
-            shoutout_message = await self.ai_instances[ctx.channel.name].shoutout(
-                target=target, author=ctx.author.name, failed=failed
-            )
+            shoutout_message = await self.ai_instances[
+                ctx.channel.name
+            ].shoutout(target=target, author=ctx.author.name, failed=failed)
             if shoutout_message:
                 await self.send_message_to_channel(
                     ctx.channel.name, shoutout_message
@@ -102,9 +102,14 @@ class TwitchBot(commands.Bot):
     async def routine_check(self):
         print("Routine check")
         logging.debug(
-            f"Routine check {self.routine_check.completed_iterations + 1} completed, {self.routine_check.remaining_iterations - 1} remaining"
+            f"Routine check {self.routine_check.completed_iterations + 1} completed,"
+            f"{self.routine_check.remaining_iterations - 1} remaining"
         )
+        raise RuntimeError("Routine check error")
 
+    @routine_check.error
+    async def routine_check_error(self, error):
+        logging.error(f"Routine check error: {error}")
 
     async def stop_bot(self):
         logging.info("Stopping bot")
@@ -179,7 +184,9 @@ class TwitchBot(commands.Bot):
             description = targets[0].description
             streams = await self.fetch_streams(user_ids=[targets[0].id])
             is_live = True if streams and streams[0] is not None else False
-            channels = await self.fetch_channels(broadcaster_ids=[targets[0].id])
+            channels = await self.fetch_channels(
+                broadcaster_ids=[targets[0].id]
+            )
             game_name = None
             tags = None
             title = None
@@ -188,10 +195,14 @@ class TwitchBot(commands.Bot):
                 title = channel.title
                 game_name = channel.game_name
                 tags = channel.tags
-            return {"name": name, "display_name": display_name, "description": description, "is_live": is_live, "game_name": game_name, "tags": tags, "title": title}
+            return {
+                "name": name,
+                "display_name": display_name,
+                "description": description,
+                "is_live": is_live,
+                "game_name": game_name,
+                "tags": tags,
+                "title": title,
+            }
         else:
             return None
-
-
-
-

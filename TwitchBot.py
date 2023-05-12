@@ -107,7 +107,7 @@ class TwitchBot(commands.Bot):
         )
 
     @routine_check.error
-    async def routine_check_error(self, error):
+    async def routine_check_error(self, error: Exception):
         logging.error(f"Routine check error: {error}")
 
     async def stop_bot(self):

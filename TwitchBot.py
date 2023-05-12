@@ -24,15 +24,17 @@ class TwitchBot(commands.Bot):
             client_secret=client_secret,
             case_insensitive=True,
         )
-        self._pattern = f"@?botdelicious[:;, ]"
+        logging.debug(f"Access token: {access_token}")
+        self._pattern = r"@?botdelicious[:;, ]"
         self.ai_instances = {}
         self.active_channels = []
         logging.info("TwitchBot initialized")
 
     async def event_ready(self):
-        logging.info(f"Ready | {self.nick}")
         await self.join_channels(Config.get_twitch_channels())
+        
         self.routine_check.start()
+        logging.info(f"Ready | {self.nick}")
 
     async def event_channel_joined(self, channel):
         self.active_channels.append(channel.name)
@@ -98,14 +100,11 @@ class TwitchBot(commands.Bot):
 
     @routines.routine(seconds=3, iterations=10)
     async def routine_check(self):
+        print("Routine check")
         logging.debug(
             f"Routine check {self.routine_check.completed_iterations + 1} completed, {self.routine_check.remaining_iterations - 1} remaining"
         )
-        raise RuntimeError("Routine check error")
-    
-    @routine_check.error
-    async def routine_check_error(self, error):
-        logging.error(f"Routine check error: {error}")
+
 
     async def stop_bot(self):
         logging.info("Stopping bot")

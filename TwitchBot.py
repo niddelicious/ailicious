@@ -33,7 +33,7 @@ class TwitchBot(commands.Bot):
     async def event_ready(self):
         await self.join_channels(Config.get_twitch_channels())
 
-        self.routine_check.start()
+        self.routine_check.start(stop_on_error=False)
         logging.info(f"Ready | {self.nick}")
 
     async def event_channel_joined(self, channel):
@@ -105,7 +105,6 @@ class TwitchBot(commands.Bot):
             f"Routine check {self.routine_check.completed_iterations + 1} completed,"
             f"{self.routine_check.remaining_iterations - 1} remaining"
         )
-        raise RuntimeError("Routine check error")
 
     @routine_check.error
     async def routine_check_error(self, error):

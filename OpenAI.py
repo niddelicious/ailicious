@@ -2,9 +2,7 @@ import openai
 import logging
 
 from openai import OpenAIError
-from twitchio import User
 from Dataclasses import ConversationEntry, ConversationStatus
-from Utilities import Utilities
 
 
 class OpenAI:
@@ -81,7 +79,7 @@ class OpenAI:
 
     async def request_chat(self, messages, assistant_message=None):
         """
-        $0.002 per 1000 tokens using gpt-3.5-turbo
+        $0.0015 per 1000 tokens using gpt-3.5-turbo-0613
         Which is 1/10th of the cost of text-davinci-003
         Meaning that even with a larger prompt, this is still cheaper
         """
@@ -90,7 +88,7 @@ class OpenAI:
             if assistant_message:
                 json_messages.append(assistant_message.__dict__)
             response = await openai.ChatCompletion.acreate(
-                model="gpt-3.5-turbo",
+                model="gpt-3.5-turbo-0613",
                 messages=json_messages,
             )
             logging.info(response)
@@ -115,15 +113,18 @@ class OpenAI:
                 username, ConversationStatus.OCCUPIED
             )
             self.add_message(conversation_id, "user", message, author)
-            assistant_message = ConversationEntry(
-                "assistant",
-                f"Please respond to @{author}'s last message: '{message}'. "
-                "Consider the context and adress them directly.",
-                "Twitch"
-            ) if self.chat_wide_conversation else None
+            assistant_message = (
+                ConversationEntry(
+                    "assistant",
+                    f"Please respond to @{author}'s last message: '{message}'. "
+                    "Consider the context and adress them directly.",
+                    "Twitch",
+                )
+                if self.chat_wide_conversation
+                else None
+            )
             response = await self.request_chat(
-                self.get_conversation(conversation_id),
-                assistant_message
+                self.get_conversation(conversation_id), assistant_message
             )
             if response:
                 reply = response["choices"][0]["message"]["content"]
@@ -139,7 +140,9 @@ class OpenAI:
             reply = self.thinking.format(username=username)
         return reply
 
-    async def shoutout(self, target: dict = None, author: str = None, failed: bool = False) -> str:
+    async def shoutout(
+        self, target: dict = None, author: str = None, failed: bool = False
+    ) -> str:
         system_name = "ai_shoutout_generator"
         system_prompt = "Hype Twitch Streamer Shoutout Generator"
 

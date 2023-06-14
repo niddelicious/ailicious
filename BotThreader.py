@@ -1,4 +1,3 @@
-
 import asyncio
 import logging
 import threading
@@ -10,7 +9,7 @@ class BotThreader:
     def __init__(self):
         self.bot_initialized = threading.Event()
         self.shared_data = {}
-        self.loop = asyncio.new_event_loop() # initialize the event loop
+        self.loop = asyncio.new_event_loop()  # initialize the event loop
 
     def init_bot(self):
         asyncio.set_event_loop(self.loop)
@@ -22,6 +21,7 @@ class BotThreader:
             Config.get("twitch", "access_token"),
             Config.get("twitch", "client_id"),
             Config.get("twitch", "client_secret"),
+            Config.get("twitch", "bot_name"),
         )
 
         # Store the bot instance in the shared_data dictionary
@@ -73,4 +73,3 @@ class BotThreader:
         bot = self.shared_data["bot"]
 
         return bot
-

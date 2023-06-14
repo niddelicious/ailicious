@@ -14,6 +14,7 @@ class TwitchBot(commands.Bot):
         access_token,
         client_id,
         client_secret,
+        bot_name,
         *args,
         **kwargs,
     ):
@@ -25,7 +26,9 @@ class TwitchBot(commands.Bot):
             case_insensitive=True,
         )
         logging.debug(f"Access token: {access_token}")
-        self._pattern = r"@?botdelicious[:;, ]"
+        self._bot_name = bot_name
+        self._pattern_direct = rf"@?{bot_name}[:;,. ]"
+        self._pattern_indirect = rf".*{bot_name}.*"
         self.ai_instances = {}
         self.active_channels = []
         logging.info("TwitchBot initialized")
@@ -37,9 +40,10 @@ class TwitchBot(commands.Bot):
         logging.info(f"Ready | {self.nick}")
 
     async def event_channel_joined(self, channel):
-        self.active_channels.append(channel.name)
         logging.info(f"Join event! Channel:{channel}")
-        await self.send_message_to_channel(channel.name, f"Hello, world!")
+        if channel.name not in self.active_channels:
+            await self.send_message_to_channel(channel.name, f"Hello, world!")
+        self.active_channels.append(channel.name)
         self.ai_instances[channel.name] = OpenAI(
             Config.get(channel.name, "org"),
             Config.get(channel.name, "key"),
@@ -52,12 +56,17 @@ class TwitchBot(commands.Bot):
 
     async def event_message(self, message):
         logging.info(
-            f"{message.channel.name} | {message.author.name if message.author else 'Botdelicious'}:: {message.content}"
+            f"{message.channel.name} | {message.author.name if message.author else self._bot_name}:: {message.content}"
         )
         if message.echo:
             return
 
-        if re.match(self._pattern, message.content):
+        _pattern = (
+            self._pattern_indirect
+            if Config.get(message.channel.name, "all_mentions")
+            else self._pattern_direct
+        )
+        if re.match(_pattern, message.content):
             logging.debug("Matched")
             logging.info(message.author)
             if self.author_meets_level_requirements(

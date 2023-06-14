@@ -1,0 +1,4 @@
+twitchio
+openai
+coloredlogs
+httpx

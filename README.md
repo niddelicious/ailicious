@@ -30,8 +30,51 @@ Once you have your credentials you will also need a Refresh Token. The simplest 
 
 This is not recommended for anything other than testing or development purposes. For production purposes you should set up a proper callback for getting tokens.
 
+# Installation
+1. Make sure you have Python 3 installed: https://www.python.org/downloads/
+2. Clone the repository and enter the folder
+```
+git clone <method of your choice>
+cd ailicious
+```
+3. Install dependencies
+```
+pip install -r requirements.txt
+```
+4. Copy config.ini-example and change the information
+```
+cp config.ini-example config.ini
+```
+5. Enter the necessary information for your Twitch API in the __[twitch]__ section
+```
+[twitch]
+client_id=[client_id]
+client_secret=[client_secret]
+access_token=[access_token]
+refresh_token=[refresh_token]
+bot_name=[botdelicious]
+```
+6. Add the channels you wish for the bot to join with __[channel_name]__ as the header for each.
+```
+[channel_name]
+org=organization [your openai organization id]
+key=access_key [your openai api key]
+prompt_message=You are a helpful chatbot
+thinking_message=I'm still thinking about your last message 🤔
+error_message=Sorry, I can't think right now
+memory_size=10
+chat_wide_conversation = yes [leave blank or delete row to disable]
+chat_level = VIEWER
+shoutouts = yes [leave blank or delete row to disable]
+shoutout_level = VIP
+all_mentions = yes [leave blank or delete row to disable]
+```
+7. Run the bot
+```
+python main.py
+```
 
-# Settings
+# Settings (per channel)
 - OpenAI API key: Your OpenAI API key
 - OpenAI Organization ID: Your OpenAI Organization ID
 - Prompt: The message you will request the bot to act like
@@ -52,7 +95,9 @@ When the application is running, you can use a few Command Line commands to cont
 
 # Chat operations
 ## Chatting
-Messaging the bot directly, using __*@botdelicious*__ at the start of the message, will prompt it to respond. It will save the incoming message to memory and use it in the conversation log sent to OpenAI to generate a response.
+Messaging the bot directly, using __*@botdelicious*__ *(default name, can be changed in the config with the bot_name option in the Twitch settings)* at the start of the message *(with or without @)*, will prompt it to respond. It will save the incoming message to memory and use it in the conversation log sent to OpenAI to generate a response.
+### Indirect messaging
+If the all_mentions option is enabled in the configuration the bot will reply to all messaging including the bot's name
 
 ## Shoutouts
 Using "!so <username>" will trigger a shoutout to the specified user. The bot will fetch the user's stream title, game, tags, About section, and if they are currently streaming, and then use this data to generate an appropriate shoutout message, including a link to the user's channel.

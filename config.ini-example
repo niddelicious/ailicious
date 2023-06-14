@@ -3,6 +3,7 @@ client_id=[client_id]
 client_secret=[client_secret]
 access_token=[access_token]
 refresh_token=[refresh_token]
+bot_name=[botdelicious]
 
 [channel_name]
 org=organization
@@ -15,3 +16,4 @@ chat_wide_conversation = yes [leave blank or delete row to disable]
 chat_level = VIEWER
 shoutouts = yes [leave blank or delete row to disable]
 shoutout_level = VIP
+all_mentions = yes [leave blank or delete row to disable]

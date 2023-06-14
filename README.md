@@ -1,7 +1,7 @@
 # ailicious
 Twitch chatbot hooked up to OpenAI API ChatGPT 3.5
 
-The bot will show up in chat as __botdelicious__
+The bot will show up in chat as __botdelicious__ *(unless otherwise specified in the config file)*
 
 
 # Request bot to join your channel
@@ -27,6 +27,8 @@ An API key can be generated on the User > API keys page.
 You will need a client_id and client_secret to use the Twitch API, which is a requirement to run the chat integration of the bot. You can get these by creating a Twitch application here: https://dev.twitch.tv/console
 
 Once you have your credentials you will also need a Refresh Token. The simplest way to get one is to follow the instructions on the Twitch Token Generator website: https://twitchtokengenerator.com/
+
+This is not recommended for anything other than testing or development purposes. For production purposes you should set up a proper callback for getting tokens.
 
 
 # Settings

@@ -26,7 +26,7 @@ class TwitchBot(commands.Bot):
             case_insensitive=True,
         )
         logging.debug(f"Access token: {access_token}")
-        self._bot_name = bot_name
+        self._bot_name = bot_name if bot_name is not None else "botdelicious"
         self._pattern_direct = rf"@?{bot_name}[:;,. ]"
         self._pattern_indirect = rf".*{bot_name}.*"
         self.ai_instances = {}
@@ -34,8 +34,6 @@ class TwitchBot(commands.Bot):
         logging.info("TwitchBot initialized")
 
     async def event_ready(self):
-        await self.join_channels(Config.get_twitch_channels())
-
         self.routine_check.start(stop_on_error=False)
         self.rejoin_channels.start(stop_on_error=False)
         logging.info(f"Ready | {self.nick}")
@@ -108,7 +106,7 @@ class TwitchBot(commands.Bot):
                     ctx.channel.name, shoutout_message
                 )
 
-    @routines.routine(seconds=3, iterations=10)
+    @routines.routine(seconds=3, iterations=3)
     async def routine_check(self):
         print("Routine check")
         logging.debug(

@@ -37,6 +37,7 @@ class TwitchBot(commands.Bot):
         await self.join_channels(Config.get_twitch_channels())
 
         self.routine_check.start(stop_on_error=False)
+        self.rejoin_channels.start(stop_on_error=False)
         logging.info(f"Ready | {self.nick}")
 
     async def event_channel_joined(self, channel):
@@ -118,6 +119,11 @@ class TwitchBot(commands.Bot):
     @routine_check.error
     async def routine_check_error(self, error: Exception):
         logging.error(f"Routine check error: {error}")
+
+    @routines.routine(hours=1)
+    async def rejoin_channels(self):
+        logging.debug("Rejoin channels")
+        await self.join_channels(Config.get_twitch_channels())
 
     async def stop_bot(self):
         logging.info("Stopping bot")

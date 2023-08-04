@@ -54,7 +54,7 @@ access_token=[access_token]
 refresh_token=[refresh_token]
 bot_name=[botdelicious]
 ```
-6. Add the channels you wish for the bot to join with __[channel_name]__ as the header for each.
+6. Add the channels you wish for the bot to join with __[channel_name]__ as the header for each. Must be in same as in URL, not displayname. __GameWithMike__ should be __gamewithmike__
 ```
 [channel_name]
 org=organization [your openai organization id]

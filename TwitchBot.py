@@ -65,7 +65,7 @@ class TwitchBot(commands.Bot):
             if Config.get(message.channel.name, "all_mentions")
             else self._pattern_direct
         )
-        if re.match(_pattern, message.content, re.CASE_INSENSITIVE):
+        if re.match(_pattern, message.content, re.IGNORECASE):
             logging.debug("Matched")
             logging.info(message.author)
             if self.author_meets_level_requirements(

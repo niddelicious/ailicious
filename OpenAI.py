@@ -15,6 +15,7 @@ class OpenAI:
         error_message,
         memory_size=10,
         chat_wide_conversation=False,
+        gpt_model="gpt-3.5-turbo",
     ) -> None:
         openai.organization = org
         openai.api_key = key
@@ -26,6 +27,7 @@ class OpenAI:
         self.conversations_status = {}
         self.memory_size = int(memory_size)
         self.chat_wide_conversation = chat_wide_conversation
+        self.gpt_model = gpt_model
 
     def start_conversation(self, conversation_id, author):
         self.conversations[conversation_id] = [
@@ -88,7 +90,7 @@ class OpenAI:
             if assistant_message:
                 json_messages.append(assistant_message.__dict__)
             response = await openai.ChatCompletion.acreate(
-                model="gpt-3.5-turbo-0613",
+                model=self.gpt_model,
                 messages=json_messages,
             )
             logging.info(response)

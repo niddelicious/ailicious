@@ -68,6 +68,7 @@ chat_level = VIEWER
 shoutouts = yes [leave blank or delete row to disable]
 shoutout_level = VIP
 all_mentions = yes [leave blank or delete row to disable]
+gpt_model = gpt-3.5-turbo [defaults to gpt-3.5-turbo if not set]
 ```
 7. Run the bot
 ```
@@ -81,9 +82,12 @@ python main.py
 - Thinking message: The message the bot will send while it is thinking
 - Error message: The message the bot will send if it encounters an error
 - Memory: The number of messages the bot will remember
+- Chat Wide Conversation: If active, the bot will treat the whole channel as a single conversation, instead of individual users
 - Chat level: The level required to chat with the bot. Viewer, VIP, Subscriber, Moderator, Broadcaster
 - Shoutouts: If the bot should respond to !so commands
 - Shoutout level: The level required to trigger shoutouts.  Viewer, VIP, Subscriber, Moderator, Broadcaster
+- All mentions = If the bot should respond to all mentions of its name, or only when directly addressed
+- GPT Model = The OpenAI model used for generating responses. Defaults to gpt-3.5-turbo if not set
 
 # System operations
 After creating a config.ini file, according to the config.ini-example, you can start the bot by running the main.py script.

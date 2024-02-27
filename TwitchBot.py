@@ -51,6 +51,7 @@ class TwitchBot(commands.Bot):
             Config.get(channel.name, "error_message"),
             Config.get(channel.name, "memory_size"),
             Config.get(channel.name, "chat_wide_conversation"),
+            Config.get(channel.name, "gpt_model", fallback="gpt-3.5-turbo"),
         )
 
     async def event_message(self, message):

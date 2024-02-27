@@ -7,8 +7,8 @@ class Config:
     _config.read("config.ini")
 
     @classmethod
-    def get(cls, section, option):
-        return cls._config.get(section, option, fallback=None)
+    def get(cls, section, option, fallback=None):
+        return cls._config.get(section, option, fallback=fallback)
 
     @classmethod
     def set(cls, section, option, value):

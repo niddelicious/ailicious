@@ -17,3 +17,4 @@ chat_level = VIEWER
 shoutouts = yes [leave blank or delete row to disable]
 shoutout_level = VIP
 all_mentions = yes [leave blank or delete row to disable]
+gpt_model = gpt-3.5-turbo [defaults to gpt-3.5-turbo]

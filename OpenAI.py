@@ -15,7 +15,7 @@ class OpenAI:
         error_message,
         memory_size=10,
         chat_wide_conversation=False,
-        gpt_model="gpt-3.5-turbo",
+        gpt_model="gpt-4o",
     ) -> None:
         openai.organization = org
         openai.api_key = key
@@ -43,9 +43,7 @@ class OpenAI:
         self, conversation_id, prompt: str = None, author: str = None
     ):
         self.clean_conversation(conversation_id)
-        conversation_prompt = (
-            prompt if prompt else self.prompt.format(username=author)
-        )
+        conversation_prompt = prompt if prompt else self.prompt.format(username=author)
         self.conversations[conversation_id] = [
             ConversationEntry("system", conversation_prompt, author)
         ]
@@ -111,9 +109,7 @@ class OpenAI:
             self.get_conversations_status(conversation_id, author)
             == ConversationStatus.IDLE
         ):
-            self.set_conversations_status(
-                username, ConversationStatus.OCCUPIED
-            )
+            self.set_conversations_status(username, ConversationStatus.OCCUPIED)
             self.add_message(conversation_id, "user", message, author)
             assistant_message = (
                 ConversationEntry(
@@ -130,14 +126,10 @@ class OpenAI:
             )
             if response:
                 reply = response["choices"][0]["message"]["content"]
-                self.add_message(
-                    conversation_id, "assistant", reply, "botdelicious"
-                )
+                self.add_message(conversation_id, "assistant", reply, "botdelicious")
             else:
                 reply = self.error.format(username=username)
-            self.set_conversations_status(
-                conversation_id, ConversationStatus.IDLE
-            )
+            self.set_conversations_status(conversation_id, ConversationStatus.IDLE)
         else:
             reply = self.thinking.format(username=username)
         return reply
@@ -173,9 +165,7 @@ class OpenAI:
                 f"Keep the reply under 490 characters."
             )
 
-        self.reprompt_conversation(
-            system_name, prompt=system_prompt, author="Twitch"
-        )
+        self.reprompt_conversation(system_name, prompt=system_prompt, author="Twitch")
         self.add_message(system_name, "user", {system_message}, author)
         response = await self.request_chat(self.get_conversation(system_name))
         reply = response["choices"][0]["message"]["content"]

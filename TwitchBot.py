@@ -51,7 +51,7 @@ class TwitchBot(commands.Bot):
             Config.get(channel.name, "error_message"),
             Config.get(channel.name, "memory_size"),
             Config.get(channel.name, "chat_wide_conversation"),
-            Config.get(channel.name, "gpt_model", fallback="gpt-3.5-turbo"),
+            Config.get(channel.name, "gpt_model", fallback="gpt-4o"),
         )
 
     async def event_message(self, message):
@@ -78,9 +78,7 @@ class TwitchBot(commands.Bot):
                     channel=message.channel.name,
                 )
                 if reply:
-                    await self.send_message_to_channel(
-                        message.channel.name, reply
-                    )
+                    await self.send_message_to_channel(message.channel.name, reply)
 
         if message.content[0] == "!":
             await self.handle_commands(message)
@@ -88,7 +86,8 @@ class TwitchBot(commands.Bot):
 
     async def event_token_expired(self):
         logging.info("Token expired")
-        return await Utilities.update_twitch_access_token()
+        new_token = await Utilities.update_twitch_access_token()
+        self._connection._token = new_token
 
     @commands.command()
     async def so(self, ctx: commands.Context):
@@ -99,13 +98,11 @@ class TwitchBot(commands.Bot):
             target = await self.fetch_user_info(username) if username else None
             logging.debug(f"Target: {target}")
             failed = False if target else username
-            shoutout_message = await self.ai_instances[
-                ctx.channel.name
-            ].shoutout(target=target, author=ctx.author.name, failed=failed)
+            shoutout_message = await self.ai_instances[ctx.channel.name].shoutout(
+                target=target, author=ctx.author.name, failed=failed
+            )
             if shoutout_message:
-                await self.send_message_to_channel(
-                    ctx.channel.name, shoutout_message
-                )
+                await self.send_message_to_channel(ctx.channel.name, shoutout_message)
 
     @routines.routine(seconds=3, iterations=3)
     async def routine_check(self):
@@ -164,9 +161,7 @@ class TwitchBot(commands.Bot):
             self.loop.create_task(chan.send(chunk))
             await asyncio.sleep(2)
 
-    def author_meets_level_requirements(
-        self, channel, chatter, type="chat_level"
-    ):
+    def author_meets_level_requirements(self, channel, chatter, type="chat_level"):
         chatter_level = self.translate_chatter_level(chatter)
         type_level = (
             ChatLevel[Config.get(channel, type)]
@@ -197,9 +192,7 @@ class TwitchBot(commands.Bot):
             description = targets[0].description
             streams = await self.fetch_streams(user_ids=[targets[0].id])
             is_live = True if streams and streams[0] is not None else False
-            channels = await self.fetch_channels(
-                broadcaster_ids=[targets[0].id]
-            )
+            channels = await self.fetch_channels(broadcaster_ids=[targets[0].id])
             game_name = None
             tags = None
             title = None

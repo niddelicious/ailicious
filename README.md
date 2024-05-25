@@ -1,5 +1,5 @@
 # ailicious
-Twitch chatbot hooked up to OpenAI API ChatGPT 3.5
+Twitch chatbot hooked up to OpenAI API ChatGPT 4o (or the model of your choice)
 
 The bot will show up in chat as __botdelicious__ *(unless otherwise specified in the config file)*
 

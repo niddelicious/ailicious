@@ -68,7 +68,7 @@ chat_level = VIEWER
 shoutouts = yes [leave blank or delete row to disable]
 shoutout_level = VIP
 all_mentions = yes [leave blank or delete row to disable]
-gpt_model = gpt-3.5-turbo [defaults to gpt-3.5-turbo if not set]
+gpt_model = gpt-4o [defaults to gpt-4o if not set]
 ```
 7. Run the bot
 ```
@@ -87,7 +87,7 @@ python main.py
 - Shoutouts: If the bot should respond to !so commands
 - Shoutout level: The level required to trigger shoutouts.  Viewer, VIP, Subscriber, Moderator, Broadcaster
 - All mentions = If the bot should respond to all mentions of its name, or only when directly addressed
-- GPT Model = The OpenAI model used for generating responses. Defaults to gpt-3.5-turbo if not set
+- GPT Model = The OpenAI model used for generating responses. Defaults to gpt-4o if not set
 
 # System operations
 After creating a config.ini file, according to the config.ini-example, you can start the bot by running the main.py script.

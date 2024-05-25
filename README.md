@@ -12,11 +12,12 @@ And OpenAI API key and Organization will be required.
 
 
 ## OpenAI API key
-You will be asked to provide your own OpanAI API key, which you can get for free here: https://beta.openai.com/
-Using the bot will cost you $0.002 per 1000 tokens.
-Depending on your settings chatting with the bot can cost about 300 tokens per message when a conversation is continuing.
-Signing up will grant you a credit amount with an expiration date that is listed on your Usage page.
-You will then be billed for your usage per calendar month.
+You will be asked to provide your own OpanAI API key, which you can get here: https://platform.openai.com/
+~~Using the bot will cost you $0.002 per 1000 tokens.~~
+~~Depending on your settings chatting with the bot can cost about 300 tokens per message when a conversation is continuing.~~
+~~Signing up will grant you a credit amount with an expiration date that is listed on your Usage page.~~
+~~You will then be billed for your usage per calendar month.~~
+OpenAI API now uses a pre-paid model, so you will need to add funds beforehand to your account to use the API.
 
 Organization ID is listed on the Organization > Settings page.
 
